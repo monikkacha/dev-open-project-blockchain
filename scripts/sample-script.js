@@ -1,29 +1,48 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
+// const ethers = require('ethers');
 const hre = require("hardhat");
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
 
-  // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  const name = "DevProToken"
+  const symobol = "DEV"
+  const decimals = 18
+  const totalSupply = ethers.utils.parseUnits("1000000", 18);
+  const rate = 100;
+  const wallet = '0x231464eF37dFBD7b3B9e55DaBAF79386910d82B3';
+  let devProToken;
+  let devCrowdsale;
+  let devOpenProject;
+  let owner;
+  let addr1;
+  let addr2;
+  let addrs;
 
-  await greeter.deployed();
+  const DevProToken = await ethers.getContractFactory("DevProToken");
+  const DevCrowdsale = await ethers.getContractFactory("DevCrowdsale");
+  const DevOpenProject = await ethers.getContractFactory("DevOpenProject");
 
-  console.log("Greeter deployed to:", greeter.address);
+  [owner, addr1, addr2] = await ethers.getSigners();
+
+  // deployments
+  devProToken = await DevProToken.deploy(name, symobol, decimals, totalSupply);
+  await devProToken.deployed();
+
+  devCrowdsale = await DevCrowdsale.deploy(rate, wallet, devProToken.address);
+  await devCrowdsale.deployed();
+
+  devOpenProject = await DevOpenProject.deploy(devProToken.address);
+  await devOpenProject.deployed();
+
+  // transfer token to crowdsale contract
+  await devProToken.transfer(devCrowdsale.address, ethers.utils.parseUnits("1000000", 18), { from: owner.address });
+
+  // buy token for address 1 
+  await devCrowdsale.buyTokens(addr1.address, { value: ethers.utils.parseUnits("1", 18) });
+
+  // balance for the dev pro token
+  await devOpenProject.connect(addr1).claimMembership();
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main()
   .then(() => process.exit(0))
   .catch((error) => {
