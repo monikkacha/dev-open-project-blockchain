@@ -4,6 +4,8 @@ const { ethers } = require("hardhat");
 
 describe("Deployment", async () => {
 
+  const document = "https://github.com/monikkacha/dev-open-project-blockchain/blob/master/README.md"
+  const github = "https://github.com/monikkacha/dev-open-project-blockchain/"
   const name = "DevProToken"
   const symobol = "DEV"
   const decimals = 18
@@ -58,8 +60,16 @@ describe("Deployment", async () => {
   })
 
   it("Check Developer Eligibility", async () => {
-    isClaimed = await devOpenProject.connect(addr1).addProposal("a", "b", "c");
+    isClaimed = await devOpenProject.connect(addr1).addProposal("a", "b");
   })
+
+  it("Add Proposal", async () => {
+    await devOpenProject.connect(addr1).addProposal(document, github)
+  })
+
+  it("Add vote", async () => {
+    await devOpenProject.connect(addr1).vote(true, 0);
+  });
 
 })
 

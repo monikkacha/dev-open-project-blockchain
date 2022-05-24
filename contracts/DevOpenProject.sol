@@ -16,15 +16,16 @@ contract DevOpenProject {
     struct Vote {
         address voter;
         bool isUpvote;
+        uint256 proposalNumber;
     }
 
     struct Proposal {
-        uint256 id;
         address proposedBy;
         string document;
         string github;
         uint256 createdAt;
-        Vote[] voting;
+        uint256 endTime;
+        bool isProposalVotingEnd;
     }
 
     struct Project {
@@ -62,11 +63,13 @@ contract DevOpenProject {
 
     Project[] public projects;
 
-    Project[] public projectProposal;
+    Proposal[] public projectProposal;
 
     Member[] public members;
 
     Developer[] public developers;
+
+    Vote[] public votes;
 
     ERC20 devProToken;
 
@@ -79,6 +82,26 @@ contract DevOpenProject {
     modifier enoughToken(uint256 minimumAmount, string memory message) {
         uint256 balance = devProToken.balanceOf(msg.sender);
         require(balance >= (minimumAmount * (10**18)), message);
+        _;
+    }
+
+    modifier hasVoted(address sender, uint256 proposalNumber) {
+        // @dev
+        // TODO :: draw back : loop through entire vote
+        // find better one
+        bool isFound = false;
+        for (uint256 i = 0; i < votes.length; i++) {
+            if (
+                votes[i].voter == sender &&
+                votes[i].proposalNumber == proposalNumber
+            ) {
+                isFound = true;
+            }
+        }
+        require(
+            isFound == false,
+            "Already voted on proposal , multiple votes are not allowed"
+        );
         _;
     }
 
@@ -98,15 +121,28 @@ contract DevOpenProject {
         members.push(member);
     }
 
-    function addProposal(
-        string memory githubProfile,
-        string memory twitterProfile,
-        string memory discordUserId
-    )
+    function addProposal(string memory document, string memory github)
         public
         enoughToken(
             minimumTokenForProposeAProject,
             "Not enough token to propose project"
         )
-    {}
+    {
+        Proposal memory proposal;
+        proposal.createdAt = now;
+        proposal.github = github;
+        proposal.document = document;
+        proposal.endTime = now + 3 days;
+        proposal.isProposalVotingEnd = false;
+
+        projectProposal.push(proposal);
+    }
+
+    function vote(bool isUpvote, uint256 proposalNumber)
+        public
+        hasVoted(msg.sender, proposalNumber)
+    {
+        Vote memory vote = Vote(msg.sender, isUpvote, proposalNumber);
+        votes.push(vote);
+    }
 }
